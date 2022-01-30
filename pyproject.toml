@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "wordleiscious"
+version = "0.1.0"
+description = ""
+authors = ["richard.harris <richard.harris@oodlefinance.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+pandas = "^1.4.0"
+tqdm = "^4.62.3"
+jupyter = "^1.0.0"
+
+[tool.poetry.dev-dependencies]
+
+[[tool.poetry.source]]
+name = "main"
+url = "https://pypi.python.org/simple"
+
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
