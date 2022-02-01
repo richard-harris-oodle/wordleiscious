@@ -1,39 +1,36 @@
-from typing import Dict, Iterable
+from typing import Iterable
 
+import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
-from wordleiscious.words import candidate_weights, answers
+from wordleiscious.words import all_words, answers
 
 
 class Solver:
-    def __init__(self, candidate_weight: pd.Series, allowed_guess: pd.Series):
-        self.candidate_weight = candidate_weight
+    def __init__(self, candidate: pd.Series, allowed_guess: pd.Series):
+        self.candidate = candidate
         self.allowed_guess = allowed_guess
 
     @classmethod
-    def from_weights_and_guesses(
-        cls, candidate_weights: Dict[str, float], allowed_guesses: Iterable[str]
+    def from_candidates_and_guesses(
+        cls, candidates: Iterable[str], allowed_guesses: Iterable[str]
     ):
 
         return cls(
-            candidate_weight=pd.Series(name="weight", data=candidate_weights),
+            candidate=pd.Series(name="candidate", data=candidates),
             allowed_guess=pd.Series(name="guess", data=allowed_guesses),
         )
 
     def with_guess(self, guess: str, outcome: str) -> "Solver":
         remaining = Solver.remaining(
-            candidate=self.candidate_weight.index.to_series(),
-            guess=pd.Series(
-                index=self.candidate_weight.index, data=guess, name="guess"
-            ),
-            outcome=pd.Series(
-                index=self.candidate_weight.index, data=outcome, name="outcome"
-            ),
+            candidate=self.candidate,
+            guess=pd.Series(index=self.candidate.index, data=guess, name="guess"),
+            outcome=pd.Series(index=self.candidate.index, data=outcome, name="outcome"),
         )
-        candidate_weight = self.candidate_weight[remaining].copy()
+        candidate = self.candidate[remaining].copy()
         allowed_guess = self.allowed_guess[self.allowed_guess != guess].copy()
-        return Solver(candidate_weight=candidate_weight, allowed_guess=allowed_guess)
+        return Solver(candidate=candidate, allowed_guess=allowed_guess)
 
     @staticmethod
     def remaining(
@@ -109,77 +106,65 @@ class Solver:
         return outcome_df.outcome.values[0]
 
     @staticmethod
-    def evaluate(candidate_weight: pd.Series, guess: pd.Series):
+    def _ensemble_entropy(outcome: pd.Series) -> float:
+
+        outcome_prob = outcome.value_counts()
+        outcome_prob /= outcome_prob.sum()
+
+        return (-outcome_prob * np.log2(outcome_prob)).sum()
+
+    @staticmethod
+    def evaluate(candidate: pd.Series, guess: pd.Series):
         outcome_df = Solver.outcome_after_guess(
-            candidate=candidate_weight.index.to_series().rename("candidate"),
+            candidate=candidate,
             guess=guess,
         )
 
-        unique_candidate_and_outcome_counts_df = (
-            outcome_df.groupby(["guess", "outcome"])
-            .size()
-            .rename("count")
-            .reset_index()
-        )
-
-        c_df = candidate_weight.reset_index().rename(columns={"index": "candidate"})
-
-        weighted_outcome_df = unique_candidate_and_outcome_counts_df.merge(
-            c_df, how="cross"
-        )
-
-        weighted_outcome_df["remaining"] = Solver.remaining(
-            candidate=weighted_outcome_df.candidate,
-            outcome=weighted_outcome_df.outcome,
-            guess=weighted_outcome_df.guess,
-        )
-
-        weighted_outcome_df["guess_score_contribution"] = (
-            weighted_outcome_df["count"]
-            * weighted_outcome_df.weight
-            * (1 - weighted_outcome_df.remaining.astype(float))
-        )
-
         return (
-            weighted_outcome_df.groupby("guess")
-            .guess_score_contribution.sum()
-            .rename("score")
+            outcome_df.groupby("guess")
+            .outcome.apply(Solver._ensemble_entropy)
+            .rename("entropy")
         )
 
     def evaluate_guesses(self) -> pd.Series:
 
-        n = 20
+        chunk_size = 100
         guess_chunks = [
-            self.allowed_guess[i : i + n] for i in range(0, self.allowed_guess.size, n)
+            self.allowed_guess[i : i + chunk_size]
+            for i in range(0, self.allowed_guess.size, chunk_size)
         ]
 
         return pd.concat(
-            Solver.evaluate(candidate_weight=self.candidate_weight, guess=guess_chunk)
+            Solver.evaluate(candidate=self.candidate, guess=guess_chunk)
             for guess_chunk in tqdm(guess_chunks, leave=False)
         )
 
     def best_guesses(self) -> pd.DataFrame:
         guess_scores_df = self.evaluate_guesses().reset_index()
-        best_guess_score = guess_scores_df.score.max()
-        return guess_scores_df[guess_scores_df.score == best_guess_score]
+        best_entropy = guess_scores_df.entropy.max()
+        return guess_scores_df[guess_scores_df.entropy == best_entropy]
 
-    def a_best_guess(self) -> str:
-        if self.candidate_weight.index.size == 1:
-            return self.candidate_weight.index.values[0]
+    def guess(self) -> str:
+        if self.candidate.size == 1:
+            return self.candidate.values[0]
         return self.best_guesses().sample().guess.values[0]
 
 
 def main():
 
-    c_weights = candidate_weights()
+    words = list(all_words())
 
     def _pre_display(guess: str, outcome: str):
         print(f"guess:'{guess}', outcome:{outcome}", end="")
 
     def _post_display(s: Solver):
-        print(f", remaining candidates:{s.candidate_weight.index.size}")
+        print(f", remaining candidates:{s.candidate.size}")
 
     first_guess = "tares"
+
+    original_solver = Solver.from_candidates_and_guesses(
+        candidates=words, allowed_guesses=words
+    )
 
     for solution in answers():
 
@@ -188,23 +173,11 @@ def main():
         )
 
         _pre_display(guess=first_guess, outcome=first_outcome)
-        s = Solver.from_weights_and_guesses(
-            candidate_weights=c_weights, allowed_guesses=c_weights.keys()
-        )
-        s = s.with_guess(
-            guess=first_guess,
-            outcome=Solver.scalar_outcome_after_guess(
-                candidate=solution, guess=first_guess
-            ),
-        )
+        s = original_solver.with_guess(guess=first_guess, outcome=first_outcome)
         _post_display(s=s)
 
-        if s.candidate_weight.index.size > 200:
-            print("skipping\n")
-            continue
-
         while True:
-            best_guess = s.a_best_guess()
+            best_guess = s.guess()
 
             best_outcome = Solver.scalar_outcome_after_guess(
                 candidate=solution, guess=best_guess

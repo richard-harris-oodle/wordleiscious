@@ -42,8 +42,8 @@ def candidate_weights() -> Dict[str, float]:
 
     weighted_candidate_df = (
         frequency_df.reindex(word_index)
-            .fillna(frequency_df["count"].min())
-            .rename(columns={"count": "weight"})
+        .fillna(frequency_df["count"].min())
+        .rename(columns={"count": "weight"})
     )
     weighted_candidate_df["weight"] /= weighted_candidate_df["weight"].sum()
 
