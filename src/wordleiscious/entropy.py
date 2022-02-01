@@ -65,7 +65,7 @@ class Solver:
 
             green_mask = o == "🟩"
             yellow_mask = o == "🟨"
-            black_mask = o == "🟦"
+            black_mask = o == "⬛"
 
             remaining[green_mask] &= (c == g)[green_mask]
 
@@ -106,7 +106,7 @@ class Solver:
 
             outcome_df.loc[green_mask, "outcome"] += "🟩"
             outcome_df.loc[yellow_mask, "outcome"] += "🟨"
-            outcome_df.loc[black_mask, "outcome"] += "🟦"
+            outcome_df.loc[black_mask, "outcome"] += "⬛"
 
         return outcome_df
 
