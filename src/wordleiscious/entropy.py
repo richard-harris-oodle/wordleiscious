@@ -14,7 +14,9 @@ class Solver:
 
     @classmethod
     def from_candidates_and_guesses(
-        cls, candidates: Iterable[str], allowed_guesses: Iterable[str]
+        cls,
+        candidates: Iterable[str],
+        allowed_guesses: Iterable[str],
     ):
 
         return cls(
@@ -22,14 +24,26 @@ class Solver:
             allowed_guess=pd.Series(name="guess", data=allowed_guesses),
         )
 
-    def with_guess(self, guess: str, outcome: str) -> "Solver":
+    def with_guess(
+        self,
+        guess: str,
+        outcome: str,
+        hard_mode: bool = False,
+    ) -> "Solver":
         remaining = Solver.remaining(
             candidate=self.candidate,
             guess=pd.Series(index=self.candidate.index, data=guess, name="guess"),
             outcome=pd.Series(index=self.candidate.index, data=outcome, name="outcome"),
         )
         candidate = self.candidate[remaining].copy()
-        allowed_guess = self.allowed_guess[self.allowed_guess != guess].copy()
+        if hard_mode:
+            allowed_guess = self.allowed_guess[
+                (self.allowed_guess != guess)
+                & np.isin(self.allowed_guess, candidate.values)
+            ]
+        else:
+            allowed_guess = self.allowed_guess[(self.allowed_guess != guess)]
+
         return Solver(candidate=candidate, allowed_guess=allowed_guess)
 
     @staticmethod
