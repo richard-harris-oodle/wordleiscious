@@ -3,6 +3,11 @@ from typing import Dict, Iterable
 import pandas as pd
 from tqdm import tqdm
 
+from wordleiscious.outcome import (
+    outcome_after_guess,
+    scalar_outcome_after_guess,
+    remaining,
+)
 from wordleiscious.words import candidate_weights, answers, all_words
 
 
@@ -22,7 +27,7 @@ class Solver:
         )
 
     def with_guess(self, guess: str, outcome: str) -> "Solver":
-        remaining = Solver.remaining(
+        _remaining = remaining(
             candidate=self.candidate_weight.index.to_series(),
             guess=pd.Series(
                 index=self.candidate_weight.index, data=guess, name="guess"
@@ -31,86 +36,13 @@ class Solver:
                 index=self.candidate_weight.index, data=outcome, name="outcome"
             ),
         )
-        candidate_weight = self.candidate_weight[remaining].copy()
+        candidate_weight = self.candidate_weight[_remaining].copy()
         allowed_guess = self.allowed_guess[self.allowed_guess != guess].copy()
         return Solver(candidate_weight=candidate_weight, allowed_guess=allowed_guess)
 
     @staticmethod
-    def remaining(
-        candidate: pd.Series, guess: pd.Series, outcome: pd.Series
-    ) -> pd.Series:
-        n = candidate.str.len().max()
-
-        remaining = pd.Series(index=candidate.index, name="remaining", data=True)
-
-        remaining &= remaining[candidate != guess]
-
-        cs = [candidate.str[i] for i in range(n)]
-
-        for i in range(n):
-            c = cs[i]
-            o = outcome.str[i]
-            g = guess.str[i]
-
-            green_mask = o == "🟩"
-            yellow_mask = o == "🟨"
-            black_mask = o == "🟦"
-
-            remaining[green_mask] &= (c == g)[green_mask]
-
-            has_g = pd.Series(index=candidate.index, data=False)
-            for ii in range(n):
-                has_g |= cs[ii] == g
-
-            remaining[yellow_mask] &= has_g[yellow_mask]
-
-            remaining[black_mask] &= ~has_g[black_mask]
-
-        return remaining
-
-    @staticmethod
-    def outcome_after_guess(candidate: pd.Series, guess: pd.Series) -> pd.DataFrame:
-
-        n = candidate.str.len().max()
-
-        outcome_df = pd.merge(candidate, guess, how="cross")
-
-        outcome_df["outcome"] = ""
-
-        cs = [outcome_df.candidate.str[i] for i in range(n)]
-
-        for i in range(n):
-
-            g = outcome_df.guess.str[i]
-            c = cs[i]
-
-            green_mask = g == c
-
-            yellow_mask = pd.Series(index=outcome_df.index, data=False)
-            for ii in range(n):
-                yellow_mask |= g == cs[ii]
-            yellow_mask &= ~green_mask
-
-            black_mask = ~green_mask & ~yellow_mask
-
-            outcome_df.loc[green_mask, "outcome"] += "🟩"
-            outcome_df.loc[yellow_mask, "outcome"] += "🟨"
-            outcome_df.loc[black_mask, "outcome"] += "🟦"
-
-        return outcome_df
-
-    @staticmethod
-    def scalar_outcome_after_guess(candidate: str, guess: str) -> str:
-        single_candidate = pd.Series(data=[candidate], name="candidate")
-        single_guess = pd.Series(data=[guess], name="guess")
-        outcome_df = Solver.outcome_after_guess(
-            candidate=single_candidate, guess=single_guess
-        )
-        return outcome_df.outcome.values[0]
-
-    @staticmethod
     def evaluate(candidate_weight: pd.Series, guess: pd.Series):
-        outcome_df = Solver.outcome_after_guess(
+        outcome_df = outcome_after_guess(
             candidate=candidate_weight.index.to_series().rename("candidate"),
             guess=guess,
         )
@@ -128,7 +60,7 @@ class Solver:
             c_df, how="cross"
         )
 
-        weighted_outcome_df["remaining"] = Solver.remaining(
+        weighted_outcome_df["remaining"] = remaining(
             candidate=weighted_outcome_df.candidate,
             outcome=weighted_outcome_df.outcome,
             guess=weighted_outcome_df.guess,
@@ -163,7 +95,7 @@ class Solver:
         best_guess_score = guess_scores_df.score.max()
         return guess_scores_df[guess_scores_df.score == best_guess_score]
 
-    def a_best_guess(self) -> str:
+    def guess(self) -> str:
         if self.candidate_weight.index.size == 1:
             return self.candidate_weight.index.values[0]
         return self.best_guesses().sample().guess.values[0]
@@ -188,23 +120,21 @@ def main():
 
     for solution in answers():
 
-        first_outcome = Solver.scalar_outcome_after_guess(
+        first_outcome = scalar_outcome_after_guess(
             candidate=solution, guess=first_guess
         )
 
         _pre_display(guess=first_guess, outcome=first_outcome)
         s = original_s.with_guess(
             guess=first_guess,
-            outcome=Solver.scalar_outcome_after_guess(
-                candidate=solution, guess=first_guess
-            ),
+            outcome=scalar_outcome_after_guess(candidate=solution, guess=first_guess),
         )
         _post_display(s=s)
 
         while True:
-            best_guess = s.a_best_guess()
+            best_guess = s.guess()
 
-            best_outcome = Solver.scalar_outcome_after_guess(
+            best_outcome = scalar_outcome_after_guess(
                 candidate=solution, guess=best_guess
             )
             _pre_display(guess=best_guess, outcome=best_outcome)
