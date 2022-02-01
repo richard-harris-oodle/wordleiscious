@@ -150,7 +150,7 @@ class Solver:
 
         return pd.concat(
             Solver.evaluate(candidate=self.candidate, guess=guess_chunk)
-            for guess_chunk in tqdm(guess_chunks, leave=False)
+            for guess_chunk in guess_chunks
         )
 
     def best_guesses(self) -> pd.DataFrame:
@@ -166,6 +166,7 @@ class Solver:
 
 def main():
 
+    candidates = list(all_words())
     words = list(all_words())
 
     def _pre_display(guess: str, outcome: str):
@@ -177,7 +178,7 @@ def main():
     first_guess = "tares"
 
     original_solver = Solver.from_candidates_and_guesses(
-        candidates=words, allowed_guesses=words
+        candidates=candidates, allowed_guesses=words
     )
 
     for solution in answers():
@@ -199,7 +200,7 @@ def main():
             _pre_display(guess=best_guess, outcome=best_outcome)
             if best_outcome == "🟩🟩🟩🟩🟩":
                 break
-            s = s.with_guess(guess=best_guess, outcome=best_outcome)
+            s = s.with_guess(guess=best_guess, outcome=best_outcome, hard_mode=False)
             _post_display(s=s)
 
         print("\n" * 2)

@@ -48,3 +48,7 @@ def candidate_weights() -> Dict[str, float]:
     weighted_candidate_df["weight"] /= weighted_candidate_df["weight"].sum()
 
     return weighted_candidate_df.weight.to_dict()
+
+
+if __name__ == "__main__":
+    process_frequency_file()

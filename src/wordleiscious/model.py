@@ -3,7 +3,7 @@ from typing import Dict, Iterable
 import pandas as pd
 from tqdm import tqdm
 
-from wordleiscious.words import candidate_weights, answers
+from wordleiscious.words import candidate_weights, answers, all_words
 
 
 class Solver:
@@ -172,6 +172,7 @@ class Solver:
 def main():
 
     c_weights = candidate_weights()
+    allowed_guesses = list(all_words())
 
     def _pre_display(guess: str, outcome: str):
         print(f"guess:'{guess}', outcome:{outcome}", end="")
@@ -181,6 +182,10 @@ def main():
 
     first_guess = "tares"
 
+    original_s = Solver.from_weights_and_guesses(
+        candidate_weights=c_weights, allowed_guesses=allowed_guesses
+    )
+
     for solution in answers():
 
         first_outcome = Solver.scalar_outcome_after_guess(
@@ -188,20 +193,13 @@ def main():
         )
 
         _pre_display(guess=first_guess, outcome=first_outcome)
-        s = Solver.from_weights_and_guesses(
-            candidate_weights=c_weights, allowed_guesses=c_weights.keys()
-        )
-        s = s.with_guess(
+        s = original_s.with_guess(
             guess=first_guess,
             outcome=Solver.scalar_outcome_after_guess(
                 candidate=solution, guess=first_guess
             ),
         )
         _post_display(s=s)
-
-        if s.candidate_weight.index.size > 200:
-            print("skipping\n")
-            continue
 
         while True:
             best_guess = s.a_best_guess()
