@@ -1,4 +1,5 @@
 import pandas as pd
+from colorama import Back, Fore, Style
 
 
 def outcome_after_guess(candidate: pd.Series, guess: pd.Series) -> pd.DataFrame:
@@ -67,3 +68,17 @@ def remaining(candidate: pd.Series, guess: pd.Series, outcome: pd.Series) -> pd.
         remaining[black_mask] &= ~has_g[black_mask]
 
     return remaining
+
+
+background_lookup = {
+    "🟩": Back.GREEN,
+    "🟨": Back.YELLOW,
+    "⬛": Back.BLACK,
+}
+
+
+def display(guess: str, outcome: str) -> str:
+    return "".join(
+        f"{background_lookup[o]}{Fore.LIGHTWHITE_EX}{Style.BRIGHT} {g.upper()} {Style.RESET_ALL}"
+        for g, o in zip(guess, outcome)
+    )

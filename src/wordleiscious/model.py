@@ -7,6 +7,7 @@ from wordleiscious.outcome import (
     outcome_after_guess,
     scalar_outcome_after_guess,
     remaining,
+    display,
 )
 from wordleiscious.words import candidate_weights, answers, all_words
 
@@ -107,7 +108,7 @@ def main():
     allowed_guesses = list(all_words())
 
     def _pre_display(guess: str, outcome: str):
-        print(f"guess:'{guess}', outcome:{outcome}", end="")
+        print(display(guess=guess, outcome=outcome), end="")
 
     def _post_display(s: Solver):
         print(f", remaining candidates:{s.candidate_weight.index.size}")
