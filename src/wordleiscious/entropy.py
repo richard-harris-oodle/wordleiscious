@@ -82,6 +82,7 @@ class Solver:
         return pd.concat(
             Solver.evaluate(candidate=self.candidate, guess=guess_chunk)
             for guess_chunk in guess_chunks
+            if not guess_chunk.empty
         )
 
     def best_guesses(self) -> pd.DataFrame:
@@ -112,7 +113,7 @@ def main():
         candidates=candidates, allowed_guesses=words
     )
 
-    for solution in answers():
+    for solution in ["zills"]:
 
         first_outcome = scalar_outcome_after_guess(
             candidate=solution, guess=first_guess
@@ -124,7 +125,6 @@ def main():
 
         while True:
             best_guess = s.guess()
-
             best_outcome = scalar_outcome_after_guess(
                 candidate=solution, guess=best_guess
             )

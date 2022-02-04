@@ -119,7 +119,7 @@ def main():
         candidate_weights=c_weights, allowed_guesses=allowed_guesses
     )
 
-    for solution in answers():
+    for solution in ['zills']:
 
         first_outcome = scalar_outcome_after_guess(
             candidate=solution, guess=first_guess
