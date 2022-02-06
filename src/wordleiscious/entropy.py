@@ -2,7 +2,7 @@ from typing import Iterable
 
 import numpy as np
 import pandas as pd
-
+from tqdm import tqdm
 from wordleiscious.outcome import (
     outcome_after_guess,
     scalar_outcome_after_guess,
@@ -81,7 +81,7 @@ class Solver:
 
         return pd.concat(
             Solver.evaluate(candidate=self.candidate, guess=guess_chunk)
-            for guess_chunk in guess_chunks
+            for guess_chunk in tqdm(guess_chunks)
             if not guess_chunk.empty
         )
 
@@ -98,8 +98,8 @@ class Solver:
 
 def main():
 
-    candidates = list(all_words())
-    words = list(all_words())
+    candidates = list(answers())
+    allowed_guesses = list(answers())
 
     def _pre_display(guess: str, outcome: str):
         print(display(guess=guess, outcome=outcome), end="")
@@ -110,10 +110,10 @@ def main():
     first_guess = "tares"
 
     original_solver = Solver.from_candidates_and_guesses(
-        candidates=candidates, allowed_guesses=words
+        candidates=candidates, allowed_guesses=allowed_guesses
     )
 
-    for solution in ["zills"]:
+    for solution in answers():
 
         first_outcome = scalar_outcome_after_guess(
             candidate=solution, guess=first_guess

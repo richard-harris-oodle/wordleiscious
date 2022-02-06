@@ -89,6 +89,7 @@ class Solver:
         return pd.concat(
             Solver.evaluate(candidate_weight=self.candidate_weight, guess=guess_chunk)
             for guess_chunk in tqdm(guess_chunks, leave=False)
+            if not guess_chunk.empty
         )
 
     def best_guesses(self) -> pd.DataFrame:
@@ -119,7 +120,7 @@ def main():
         candidate_weights=c_weights, allowed_guesses=allowed_guesses
     )
 
-    for solution in ['zills']:
+    for solution in ["zills"]:
 
         first_outcome = scalar_outcome_after_guess(
             candidate=solution, guess=first_guess

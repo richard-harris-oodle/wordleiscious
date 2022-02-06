@@ -2,60 +2,53 @@ import string
 
 import pandas as pd
 from colorama import Back, Fore, Style
+from collections import Counter
 
 
 def outcome_after_guess(candidate: pd.Series, guess: pd.Series) -> pd.DataFrame:
-    n = candidate.str.len().max()
+    candidate_and_guess_df = pd.merge(candidate, guess, how="cross")
+    return outcome(candidate_and_guess_df=candidate_and_guess_df)
 
-    outcome_df = pd.merge(candidate, guess, how="cross")
+
+def outcome(candidate_and_guess_df: pd.DataFrame) -> pd.DataFrame:
+    n = candidate_and_guess_df.candidate.str.len().max()
+
+    outcome_df = candidate_and_guess_df.copy()
 
     outcome_df["outcome"] = ""
 
-    cs = [outcome_df.candidate.str[i] for i in range(n)]
-    gs = [outcome_df.guess.str[i] for i in range(n)]
+    guess_chars_df = outcome_df.guess.apply(list).apply(pd.Series)
+    candidate_chars_df = outcome_df.candidate.apply(list).apply(pd.Series)
+
+    same_char_count_df = pd.DataFrame(
+        index=candidate_and_guess_df.index, columns=range(n), data=0
+    )
+
+    same_char_green_count_df = pd.DataFrame(
+        index=candidate_and_guess_df.index, columns=range(n), data=0
+    )
+
+    for i in range(n):
+        for ii in range(n):
+            if i == ii:
+                continue
+            same_char = guess_chars_df[i] == candidate_chars_df[ii]
+            same_char_count_df[i] += same_char
+            same_char_green_count_df[i] += same_char & (
+                guess_chars_df[ii] == candidate_chars_df[ii]
+            )
+
+    same_char_not_known_counts_df = same_char_count_df - same_char_green_count_df
 
     for i in range(n):
 
-        g = gs[i]
-        c = cs[i]
-
-        green_mask = g == c
-
-        yellow_mask = pd.Series(index=outcome_df.index, data=False)
-
-        for ii in range(n):
-            yellow_mask |= g == cs[ii]
-        yellow_mask &= ~green_mask
-
+        green_mask = guess_chars_df[i] == candidate_chars_df[i]
+        yellow_mask = ~green_mask & (same_char_not_known_counts_df[i] > 0)
         black_mask = ~green_mask & ~yellow_mask
 
         outcome_df.loc[green_mask, "outcome"] += "🟩"
         outcome_df.loc[yellow_mask, "outcome"] += "🟨"
         outcome_df.loc[black_mask, "outcome"] += "⬛"
-
-    os = [outcome_df.outcome.str[i] for i in range(n)]
-
-    # Turn 🟨 to ⬛ if all instances of the character are accounted for in 🟩.
-    for i in range(n):
-        g = gs[i]
-        o = os[i]
-
-        g_is_green_count = pd.Series(index=outcome_df.index, data=0)
-        g_count = pd.Series(index=outcome_df.index, data=0)
-
-        for ii in range(n):
-            oo = os[ii]
-            gg = gs[ii]
-
-            g_is_green_count[(oo == "🟩") & (gg == g)] += 1
-            g_count[gg == g] += 1
-
-        yellow_to_black_mask = (o == "🟨") & g_is_green_count == g_count
-        outcome_df.outcome[yellow_to_black_mask] = (
-            outcome_df.outcome[yellow_to_black_mask].str[:i]
-            + "⬛"
-            + outcome_df.outcome[yellow_to_black_mask].str[i + 1 :]
-        )
 
     return outcome_df
 
