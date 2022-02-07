@@ -81,7 +81,7 @@ class Solver:
 
         return pd.concat(
             Solver.evaluate(candidate=self.candidate, guess=guess_chunk)
-            for guess_chunk in tqdm(guess_chunks)
+            for guess_chunk in tqdm(guess_chunks, leave=False)
             if not guess_chunk.empty
         )
 

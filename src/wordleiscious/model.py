@@ -81,7 +81,7 @@ class Solver:
 
     def evaluate_guesses(self) -> pd.Series:
 
-        n = 20
+        n = 50
         guess_chunks = [
             self.allowed_guess[i : i + n] for i in range(0, self.allowed_guess.size, n)
         ]

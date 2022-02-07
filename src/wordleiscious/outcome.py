@@ -1,8 +1,5 @@
-import string
-
 import pandas as pd
 from colorama import Back, Fore, Style
-from collections import Counter
 
 
 def outcome_after_guess(candidate: pd.Series, guess: pd.Series) -> pd.DataFrame:
@@ -17,8 +14,13 @@ def outcome(candidate_and_guess_df: pd.DataFrame) -> pd.DataFrame:
 
     outcome_df["outcome"] = ""
 
-    guess_chars_df = outcome_df.guess.apply(list).apply(pd.Series)
-    candidate_chars_df = outcome_df.candidate.apply(list).apply(pd.Series)
+    guess_chars_df = pd.DataFrame.from_dict(
+        {i: candidate_and_guess_df.guess.str[i] for i in range(n)}
+    )
+
+    candidate_chars_df = pd.DataFrame.from_dict(
+        {i: candidate_and_guess_df.candidate.str[i] for i in range(n)}
+    )
 
     same_char_count_df = pd.DataFrame(
         index=candidate_and_guess_df.index, columns=range(n), data=0
@@ -95,7 +97,7 @@ def remaining(candidate: pd.Series, guess: pd.Series, outcome: pd.Series) -> pd.
 
         remaining[yellow_mask] &= (same_g_count > same_g_accounted_for)[yellow_mask]
 
-        remaining[black_mask] &= (same_g_count == 0)[black_mask]
+        remaining[black_mask] &= (same_g_count == same_g_accounted_for)[black_mask]
 
     return remaining.astype(bool)
 
