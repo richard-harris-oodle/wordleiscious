@@ -98,8 +98,8 @@ class Solver:
 
 def main():
 
-    candidates = list(answers())
-    allowed_guesses = list(answers())
+    candidates = list(all_words())
+    allowed_guesses = list(all_words())
 
     def _pre_display(guess: str, outcome: str):
         print(display(guess=guess, outcome=outcome), end="")
